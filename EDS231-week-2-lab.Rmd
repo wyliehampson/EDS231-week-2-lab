@@ -2,7 +2,9 @@
 title: "EDS 231 Week 2 Lab"
 author: "Wylie Hampson"
 date: "4/11/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -13,7 +15,7 @@ library(tidytext) #text data management and analysis
 library(ggplot2) #plot word frequencies and publication dates
 ```
 
-This code chunk uses the NYT API to search for articles. I decided to use the term "Electric Vehicles" and look for all articles between 01/01/2012 and 04/01/2022.
+**This code chunk uses the NYT API to search for articles. I decided to use the term "Electric Vehicles" and look for all articles between 01/01/2012 and 04/01/2022.**
 
 ```{r}
 term <- "Electric+Vehicles" # Need to use + to string together separate words
@@ -50,7 +52,7 @@ class(nytSearch)
 nytDat <- rbind_pages(pages)
 ```
 
-This code chunk creates a plot that shows the percentage of what types of media the search term comes up in. The most common one being News media. 
+**This code chunk creates a plot that shows the percentage of what types of media the search term comes up in. The most common one being News media.**
 
 ```{r}
 nytDat %>% 
@@ -61,7 +63,7 @@ nytDat %>%
   geom_bar(aes(y=percent, x=response.docs.type_of_material, fill=response.docs.type_of_material), stat = "identity") + coord_flip()
 ```
 
-This code chunk plots the number of articles published per date, so we can see which days published the most relevant articles on the search. We see 11/10/2021 had 7 articles about elevtric vehicles published that day.
+**This code chunk plots the number of articles published per date, so we can see which days published the most relevant articles on the search. We see 11/10/2021 had 7 articles about electric vehicles published that day.**
 
 ```{r}
 nytDat %>%
@@ -77,17 +79,17 @@ nytDat %>%
 names(nytDat)
 ```
 
-This code chunk creates a column to put each word from the lead paragraphs of the articles into its own row.
+**This code chunk creates a column to put each word from the lead paragraphs of the articles into its own row.**
 
 ```{r}
 paragraph <- names(nytDat)[6] #The 6th column, "response.doc.lead_paragraph", is the one we want here.  
 tokenized <- nytDat %>%
   unnest_tokens(word, paragraph)
 
-tokenized[,35]
+#tokenized[,35]
 ```
 
-This code chunk takes all of the words from the word column and creates a histogram. However, notice that stop words are still included.
+**This code chunk takes all of the words from the word column and creates a histogram. However, notice that stop words are still included, and there are too many words on it to read.**
 
 ```{r}
 tokenized %>%
@@ -99,16 +101,16 @@ tokenized %>%
   labs(y = NULL)
 ```
 
-Here we remove the stop words.
+**Here we pull in the stop words so that we can remove them.**
 
 ```{r}
 data(stop_words)
-stop_words
+# stop_words
 ```
 
-These are the results without stop words included.
+**These are the results without stop words included. Still too many words to read, and there are other issues.**
 
-```{r}
+```{r, warning=FALSE}
 tokenized <- tokenized %>%
   anti_join(stop_words)
 
@@ -121,25 +123,22 @@ tokenized %>%
   labs(y = NULL)
 ```
 
-This code cleans up the above plot by getting rid of number strings, 
+**This code cleans up the above plot by getting rid of number strings, plural versions of words, and words that end in "'s".**
 
 ```{r}
 #inspect the list of tokens (words)
-tokenized$word
+# tokenized$word
 
 clean_tokens <- str_remove_all(tokenized$word, "[:digit:]") #remove all numbers
+
+# These lines replace plural words with their singular version
+clean_tokens <- str_replace_all(clean_tokens,"car[a-z,A-Z]*","car")
+clean_tokens <- str_replace_all(clean_tokens,"vehicle[a-z,A-Z]*","vehicle")
+clean_tokens <- str_replace_all(clean_tokens,"truck[a-z,A-Z]*","truck")
 
 clean_tokens <- gsub("’s", '', clean_tokens) # remove all words ending in "'s"
 
 tokenized$clean <- clean_tokens
-
-tokenized %>%
-  count(clean, sort = TRUE) %>%
- #illegible with all the words displayed
-  mutate(clean = reorder(clean, n)) %>%
-  ggplot(aes(n, clean)) +
-  geom_col() +
-  labs(y = NULL)
 
 #remove the empty strings
 tib <-subset(tokenized, clean!="")
@@ -157,15 +156,17 @@ tokenized %>%
   labs(y = NULL)
 ```
 
-Now let's do the same thing using headlines instead of lead paragraphs.
+**Now let's do the same thing using headlines instead of lead paragraphs.**
 
 ```{r}
 headline <- names(nytDat)[21] #The 6th column, "response.doc.lead_paragraph", is the one we want here.  
 tokenized <- nytDat %>%
   unnest_tokens(word, headline)
 
-tokenized[,35]
+# tokenized[,35]
 ```
+
+**With the stop words included.**
 
 ```{r}
 tokenized %>%
@@ -176,6 +177,8 @@ tokenized %>%
   geom_col() +
   labs(y = NULL)
 ```
+
+**Before taking out numbers, plurals, and words ending in "'s".**
 
 ```{r}
 tokenized <- tokenized %>%
@@ -190,23 +193,22 @@ tokenized %>%
   labs(y = NULL)
 ```
 
+**Final plot.**
+
 ```{r}
 #inspect the list of tokens (words)
-tokenized$word
+# tokenized$word
 
 clean_tokens <- str_remove_all(tokenized$word, "[:digit:]") #remove all numbers
+
+# These lines replace plural words with their singular version
+clean_tokens <- str_replace_all(clean_tokens,"car[a-z,A-Z]*","car")
+clean_tokens <- str_replace_all(clean_tokens,"vehicle[a-z,A-Z]*","vehicle")
+clean_tokens <- str_replace_all(clean_tokens,"truck[a-z,A-Z]*","truck")
 
 clean_tokens <- gsub("’s", '', clean_tokens) # remove all words ending in "'s"
 
 tokenized$clean <- clean_tokens
-
-tokenized %>%
-  count(clean, sort = TRUE) %>%
- #illegible with all the words displayed
-  mutate(clean = reorder(clean, n)) %>%
-  ggplot(aes(n, clean)) +
-  geom_col() +
-  labs(y = NULL)
 
 #remove the empty strings
 tib <-subset(tokenized, clean!="")
@@ -224,4 +226,4 @@ tokenized %>%
   labs(y = NULL)
 ```
 
-We can see that when we look at the headlines instead of the lead paragraphs we do get a slightly different order of words, however many of the words are the same in both groups. Some things I found interesting though is that the headlines seemed to mention specific companies such as G.M. and Rivian and the lead paragraphs did not, other than for Tesla. Something else interesting was the the lead paragraphs had more mention of Biden where as for the headlines that is lower on the list. For the headlines I lowered the number of times a word needs to appear to show up on the plot, which makes sense because there are going to be less words overall in the headline list.
+**We can see that when we look at the headlines instead of the lead paragraphs we do get a slightly different order of words, however many of the words are the same in both groups. Some things I found interesting though is that the headlines seemed to mention specific companies such as G.M. and Rivian and the lead paragraphs did not, other than for Tesla. Something else interesting was the the lead paragraphs had more mention of Biden where as for the headlines that is lower on the list. For the headlines I lowered the number of times a word needs to appear to show up on the plot, which makes sense because there are going to be less words overall in the headline list.**
